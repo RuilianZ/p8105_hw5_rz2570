@@ -30,13 +30,14 @@ n_unsolved_df = homicide_df %>%
     n_unsolved = n()
   )
 
-left_join(n_homicides_df, n_unsolved_df, by = "city_state") %>% 
-  mutate(n_unsolved = replace_na(n_unsolved, 0)) %>% 
-  knitr::kable()
+city_summary_df = left_join(n_homicides_df, n_unsolved_df, by = "city_state") %>% 
+  mutate(n_unsolved = replace_na(n_unsolved, 0))
+
+knitr::kable(city_summary_df)
 ```
 
-```{r prop test}
-baltimore_prop = prop.test(c(1825, 1002), n = c(2827, 2827), alternative = "two.sided")
+```{r prop test baltimore}
+baltimore_prop = prop.test(x = c(1825, 1002), n = c(2827, 2827), alternative = "two.sided")
 
 baltimore_prop_tidy = broom::tidy(baltimore_prop, conf.int = TRUE)
 
@@ -44,4 +45,29 @@ pull(baltimore_prop_tidy, estimate1)
 c(pull(baltimore_prop_tidy, conf.low), pull(baltimore_prop_tidy, conf.high))
 ```
 
-For unsolved homicides in Baltimore, the estimated proportion is `r pull(baltimore_prop_tidy, estimate1)`. The confidence interval is (`r c(pull(baltimore_prop_tidy, conf.low), pull(baltimore_prop_tidy, conf.high))`).
+* For unsolved homicides in Baltimore, the estimated proportion is `r pull(baltimore_prop_tidy, estimate1)`. The confidence interval is (`r c(pull(baltimore_prop_tidy, conf.low), pull(baltimore_prop_tidy, conf.high))`).
+
+```{r proptest each city}
+city_summary_nested = nest(city_summary_df, data = c("n_homicides", "n_unsolved"))
+
+city_prop = function(df) {
+  
+  n = df[[1]]
+  n1 = df[[2]]
+  n2 = n - n1
+  
+  prop_test = prop.test(c(n1, n2), c(n, n), alternative = "two.sided") %>% 
+    broom::tidy(conf.int = TRUE)
+  
+  tibble(
+    unsolved_prop = pull(prop_test, estimate1),
+    conf_int = str_c(pull(prop_test, conf.low), pull(prop_test, conf.high), sep = ", ")
+    )
+    
+  }
+
+city_prop(city_summary_nested$data[[3]])
+
+map(city_summary_nested$data, city_prop)
+```
+
