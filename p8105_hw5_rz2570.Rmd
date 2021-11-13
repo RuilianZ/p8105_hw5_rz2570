@@ -60,14 +60,16 @@ city_prop = function(df) {
     broom::tidy(conf.int = TRUE)
   
   tibble(
-    unsolved_prop = pull(prop_test, estimate1),
-    conf_int = str_c(pull(prop_test, conf.low), pull(prop_test, conf.high), sep = ", ")
+    unsolved_prop = round(pull(prop_test, estimate1), 2),
+    conf_int = str_c(round(pull(prop_test, conf.low), 2),  round(pull(prop_test, conf.high), 2), sep = ", ")
     )
     
   }
 
-city_prop(city_summary_nested$data[[3]])
-
-map(city_summary_nested$data, city_prop)
+city_summary_nested %>% 
+  mutate(prop_results = map(data, city_prop)) %>% 
+  unnest(prop_results) %>% 
+  select(-data) %>% 
+  knitr::kable()
 ```
 
