@@ -4,3 +4,30 @@ author: "Ruilian Zhang"
 date: "11/12/2021"
 output: github_document
 ---
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+homicide_df = read_csv("data/homicide-data.csv") %>% 
+  janitor::clean_names() %>% 
+  mutate(city_state = str_c(city, state, sep = ", "))
+
+n_homicides_df = homicide_df %>% 
+  group_by(city_state) %>% 
+  summarize(
+    n_homicides = n()
+  )
+
+n_unsolved_df = homicide_df %>% 
+  group_by(city_state) %>% 
+  filter(disposition %in% c("Closed without arrest", "Open/No arrest")) %>% 
+  summarize(
+    n_unsolved = n()
+  )
+
+city_summary_df = left_join(n_homicides_df, n_unsolved_df, by = "city_state") %>% 
+  mutate(n_unsolved = replace_na(n_unsolved, 0))
+```
+
