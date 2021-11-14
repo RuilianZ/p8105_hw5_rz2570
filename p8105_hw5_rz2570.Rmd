@@ -37,15 +37,15 @@ knitr::kable(city_summary_df)
 ```
 
 ```{r prop test baltimore}
-baltimore_prop = prop.test(x = c(1825, 1002), n = c(2827, 2827), alternative = "two.sided")
+baltimore_prop = prop.test(x = 1825, n = 2827, alternative = "two.sided")
 
 baltimore_prop_tidy = broom::tidy(baltimore_prop, conf.int = TRUE)
 
-pull(baltimore_prop_tidy, estimate1)
+pull(baltimore_prop_tidy, estimate)
 c(pull(baltimore_prop_tidy, conf.low), pull(baltimore_prop_tidy, conf.high))
 ```
 
-* For unsolved homicides in Baltimore, the estimated proportion is `r pull(baltimore_prop_tidy, estimate1)`. The confidence interval is (`r c(pull(baltimore_prop_tidy, conf.low), pull(baltimore_prop_tidy, conf.high))`).
+* For unsolved homicides in Baltimore, the estimated proportion is `r pull(baltimore_prop_tidy, estimate)`. The confidence interval is (`r c(pull(baltimore_prop_tidy, conf.low), pull(baltimore_prop_tidy, conf.high))`).
 
 ```{r proptest each city}
 city_summary_nested = nest(city_summary_df, data = c("n_homicides", "n_unsolved"))
@@ -53,23 +53,40 @@ city_summary_nested = nest(city_summary_df, data = c("n_homicides", "n_unsolved"
 city_prop = function(df) {
   
   n = df[[1]]
-  n1 = df[[2]]
-  n2 = n - n1
+  x = df[[2]]
   
-  prop_test = prop.test(c(n1, n2), c(n, n), alternative = "two.sided") %>% 
+  prop_test = prop.test(x = x, n = n, alternative = "two.sided") %>% 
     broom::tidy(conf.int = TRUE)
   
   tibble(
-    unsolved_prop = round(pull(prop_test, estimate1), 2),
-    conf_int = str_c(round(pull(prop_test, conf.low), 2),  round(pull(prop_test, conf.high), 2), sep = ", ")
+    est_unsolved_prop = round(pull(prop_test, estimate), 2),
+    conf_int_lower = round(pull(prop_test, conf.low), 2),
+    conf_int_upper = round(pull(prop_test, conf.high), 2)
     )
     
   }
 
-city_summary_nested %>% 
+city_prop_df = city_summary_nested %>% 
   mutate(prop_results = map(data, city_prop)) %>% 
   unnest(prop_results) %>% 
-  select(-data) %>% 
-  knitr::kable()
+  select(-data)
+
+knitr::kable(city_prop_df)
 ```
 
+```{r plot esitimaes and CIs}
+city_prop_df %>% 
+  ggplot(aes(x = reorder(city_state, est_unsolved_prop), y = est_unsolved_prop)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = conf_int_lower, ymax = conf_int_upper)) + 
+  coord_flip() +
+  labs(
+    title = "Estimated proportion of unsolved homicide for each city",
+    y = "Estimated proportion",
+    x = "City",
+    caption = "Error bar shows 95% confidence interval"
+  )
+```
+
+* The plot shows the estimated proportion of unsolved homicide for each city, in which the cities are ordered by estimated proportions.  
+* `Tulsa, AL` has the lowest proportion of 0. `Chicago, IL` has the highest proportion. 
