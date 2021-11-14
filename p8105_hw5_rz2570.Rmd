@@ -90,3 +90,24 @@ city_prop_df %>%
 
 * The plot shows the estimated proportion of unsolved homicide for each city, in which the cities are ordered by estimated proportions.  
 * `Tulsa, AL` has the lowest proportion of 0. `Chicago, IL` has the highest proportion. 
+
+
+## Problem 2
+
+```{r read patient files and tidy}
+files = list.files(path = "data/problem_2")
+
+read_files = function(x) {
+  
+  path = str_c("data/problem_2/", x)
+  read_csv(path)
+  
+}
+
+patient_df = 
+  data_frame(file_name = files) %>% 
+  mutate(content = map(file_name, read_files)) %>% 
+  unnest(content) # %>% 
+  # mutate(arm = ifelse(starts_with("con"), control, experimental))
+```
+
