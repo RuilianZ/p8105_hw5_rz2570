@@ -94,7 +94,7 @@ city_prop_df %>%
 
 ## Problem 2
 
-```{r read patient files and tidy}
+```{r read patient files and tidy, message = FALSE}
 files = list.files(path = "data/problem_2")
 
 read_files = function(x) {
@@ -105,9 +105,15 @@ read_files = function(x) {
 }
 
 patient_df = 
-  data_frame(file_name = files) %>% 
+  tibble(file_name = files) %>% 
   mutate(content = map(file_name, read_files)) %>% 
-  unnest(content) # %>% 
-  # mutate(arm = ifelse(starts_with("con"), control, experimental))
+  unnest(content) %>% 
+  separate(col = file_name, into = c("arm", "subject_id"), sep = "_") %>% 
+  mutate(
+    arm = ifelse(arm == "con", "control", "experimental"),
+    subject_id = substr(subject_id, start = 1, stop = 2)) %>% 
+  select(subject_id, everything())
+
+patient_df
 ```
 
