@@ -7,15 +7,20 @@ output: github_document
 
 ```{r}
 library(tidyverse)
+
+theme_set(theme_minimal() + theme(legend.position = "bottom"))
 ```
 
 
 ## Problem 1
 
 ```{r import and summary data}
-homicide_df = read_csv("data/homicide-data.csv") %>% 
+homicide_df = 
+  read_csv("data/homicide-data.csv", na = c(" ", "Unknown")) %>%
   janitor::clean_names() %>% 
-  mutate(city_state = str_c(city, state, sep = ", "))
+  mutate(city_state = str_c(city, state, sep = ", ")) %>% 
+  relocate(city_state) %>% 
+  filter(city_state != "Tulsa, AL")
 
 n_homicides_df = homicide_df %>% 
   group_by(city_state) %>% 
@@ -32,12 +37,17 @@ n_unsolved_df = homicide_df %>%
 
 city_summary_df = left_join(n_homicides_df, n_unsolved_df, by = "city_state") %>% 
   mutate(n_unsolved = replace_na(n_unsolved, 0))
-
-knitr::kable(city_summary_df)
 ```
 
 ```{r prop test baltimore}
-baltimore_prop = prop.test(x = 1825, n = 2827, alternative = "two.sided")
+baltimore_summary_df = 
+  city_summary_df %>% 
+  filter(city_state == "Baltimore, MD")
+
+baltimore_prop = 
+  prop.test(
+    x = pull(baltimore_summary_df, n_unsolved), 
+    n = pull(baltimore_summary_df, n_homicides), alternative = "two.sided")
 
 baltimore_prop_tidy = broom::tidy(baltimore_prop, conf.int = TRUE)
 
@@ -59,9 +69,9 @@ city_prop = function(df) {
     broom::tidy(conf.int = TRUE)
   
   tibble(
-    est_unsolved_prop = round(pull(prop_test, estimate), 2),
-    conf_int_lower = round(pull(prop_test, conf.low), 2),
-    conf_int_upper = round(pull(prop_test, conf.high), 2)
+    est_unsolved_prop = round(pull(prop_test, estimate), 3),
+    conf_int_lower = round(pull(prop_test, conf.low), 3),
+    conf_int_upper = round(pull(prop_test, conf.high), 3)
     )
     
   }
@@ -70,8 +80,6 @@ city_prop_df = city_summary_nested %>%
   mutate(prop_results = map(data, city_prop)) %>% 
   unnest(prop_results) %>% 
   select(-data)
-
-knitr::kable(city_prop_df)
 ```
 
 ```{r plot esitimaes and CIs}
@@ -79,17 +87,18 @@ city_prop_df %>%
   ggplot(aes(x = reorder(city_state, est_unsolved_prop), y = est_unsolved_prop)) +
   geom_point() +
   geom_errorbar(aes(ymin = conf_int_lower, ymax = conf_int_upper)) + 
-  coord_flip() +
   labs(
     title = "Estimated proportion of unsolved homicide for each city",
     y = "Estimated proportion",
     x = "City",
     caption = "Error bar shows 95% confidence interval"
-  )
+  ) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 ```
 
 * The plot shows the estimated proportion of unsolved homicide for each city, in which the cities are ordered by estimated proportions.  
-* `Tulsa, AL` has the lowest proportion of 0. `Chicago, IL` has the highest proportion. 
+* Error bars show the confidence intervals for each proportion, which vary among cities. Cities such as `Tumpa FL` and `Svannah, GA` have wider confident intervals, while `Chicago, IL` has the narrowest one.
+* `Richmond, VA` has the lowest estimated proportion, while `Chicago, IL` has the highest estimated proportion. 
 
 
 ## Problem 2
@@ -137,3 +146,37 @@ patient_df %>%
 * The values of the control group are relatively steady, which mostly fall within an interval of (-1.25, 3.75).  
 * Patient 5 has the lowest overall values in control arm, but his/her values are relatively high among other patients in the experimental arm. And the situation is nearly the opposite for patient 3.  
 * From the plot we may draw a conclusion that the experiment has a positive effect on increasing the test value.
+
+
+## Problem 3
+
+```{r introduce missing values}
+set.seed(10)
+
+iris_with_missing = iris %>% 
+  map_df(~replace(.x, sample(1:150, 20), NA)) %>%
+  mutate(Species = as.character(Species))
+```
+
+
+
+### need to be fixed
+```{r write a funciton to fill NA}
+fill_numeric = function(x) {
+  
+  mean = mean(x)
+  
+  for (i in 1:150) {
+  
+    is.na(x[i])
+    if (TRUE) {
+      x[i] = mean
+    }
+  }
+}
+
+fill_numeric(iris_with_missing$Sepal.Length)
+
+iris_with_missing = map(.x = iris_with_missing$Sepal.Length, ~ fill_numeric(.x))
+```
+
