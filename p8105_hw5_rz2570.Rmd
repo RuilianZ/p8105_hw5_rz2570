@@ -158,25 +158,27 @@ iris_with_missing = iris %>%
   mutate(Species = as.character(Species))
 ```
 
-
-
-### need to be fixed
 ```{r write a funciton to fill NA}
-fill_numeric = function(x) {
+fill_missing = function(x) {
   
-  mean = mean(x)
-  
-  for (i in 1:150) {
-  
-    is.na(x[i])
-    if (TRUE) {
-      x[i] = mean
+  if (is.numeric(x)) {
+    
+    col_mean = round(mean(x, na.rm = TRUE), 1)
+    x = replace_na(x, col_mean)
+    
     }
-  }
+  
+  else if (is.character(x)) {
+    
+    x = replace_na(x, "virginica")
+    
+    }
+
 }
 
-fill_numeric(iris_with_missing$Sepal.Length)
+iris_filled = 
+  map(.x = iris_with_missing, ~ fill_missing(.x)) %>% 
+  as_tibble()
 
-iris_with_missing = map(.x = iris_with_missing$Sepal.Length, ~ fill_numeric(.x))
+knitr::kable(iris_filled)
 ```
-
