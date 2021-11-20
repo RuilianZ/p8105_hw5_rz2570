@@ -55,7 +55,7 @@ pull(baltimore_prop_tidy, estimate)
 c(pull(baltimore_prop_tidy, conf.low), pull(baltimore_prop_tidy, conf.high))
 ```
 
-* For unsolved homicides in Baltimore, the estimated proportion is `r pull(baltimore_prop_tidy, estimate)`. The confidence interval is (`r c(pull(baltimore_prop_tidy, conf.low), pull(baltimore_prop_tidy, conf.high))`).
+* For unsolved homicides in Baltimore, the estimated proportion is `r round(pull(baltimore_prop_tidy, estimate), 3)`. The confidence interval is (`r c(round(pull(baltimore_prop_tidy, conf.low), 3), round(pull(baltimore_prop_tidy, conf.high), 3))`).
 
 ```{r proptest each city}
 city_summary_nested = nest(city_summary_df, data = c("n_homicides", "n_unsolved"))
@@ -83,17 +83,20 @@ city_prop_df = city_summary_nested %>%
 ```
 
 ```{r plot esitimaes and CIs}
-city_prop_df %>% 
-  ggplot(aes(x = reorder(city_state, est_unsolved_prop), y = est_unsolved_prop)) +
-  geom_point() +
-  geom_errorbar(aes(ymin = conf_int_lower, ymax = conf_int_upper)) + 
-  labs(
-    title = "Estimated proportion of unsolved homicide for each city",
-    y = "Estimated proportion",
-    x = "City",
-    caption = "Error bar shows 95% confidence interval"
-  ) +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+city_prop_plot = 
+  city_prop_df %>% 
+    ggplot(aes(x = reorder(city_state, est_unsolved_prop), y =   est_unsolved_prop)) +
+    geom_point() +
+    geom_errorbar(aes(ymin = conf_int_lower, ymax =   conf_int_upper)) + 
+    labs(
+      title = "Estimated proportion of unsolved homicide for   each city",
+      y = "Estimated proportion",
+      x = "City",
+      caption = "Error bar shows 95% confidence interval"
+    ) +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5,   hjust = 1))
+
+city_prop_plot
 ```
 
 * The plot shows the estimated proportion of unsolved homicide for each city, in which the cities are ordered by estimated proportions.  
@@ -131,19 +134,22 @@ patient_df =
 ```
 
 ```{r make a plot}
-patient_df %>% 
-  ggplot(aes(x = week, y = value)) +
-  geom_line(aes(group = subject_id, color = subject_id)) +
-  facet_grid(. ~ arm) +
-  labs(
-    title = "Obsevered value over time for each patient",
-    x = "Week",
-    y = "Value"
-  )
+patient_plot = 
+  patient_df %>% 
+    ggplot(aes(x = week, y = value)) +
+    geom_line(aes(group = subject_id, color = subject_id)) +
+    facet_grid(. ~ arm) +
+    labs(
+      title = "Obsevered value over time for each patient",
+      x = "Week",
+      y = "Value"
+    )
+
+patient_plot
 ```
 
-* Compared to the control group, all the patients in the experimental group has an increasing trend of detected value over time, with an approximate range of (-1, 7.5).    
-* The values of the control group are relatively steady, which mostly fall within an interval of (-1.25, 3.75).  
+* All the patients in the experimental group has an increasing trend of detected value over time. The observed values in the experimental group fall within a range of (`r patient_df %>% filter(arm == "experimental") %>% select(value) %>% min()`, `r patient_df %>% filter(arm == "experimental") %>% select(value) %>% max()`).    
+* The values of the control group do not show a trend of increasing/decreasing, which mostly fall within an interval of (`r patient_df %>% filter(arm == "control") %>% select(value) %>% min()`, `r patient_df %>% filter(arm == "control") %>% select(value) %>% max()`).  
 * Patient 5 has the lowest overall values in control arm, but his/her values are relatively high among other patients in the experimental arm. And the situation is nearly the opposite for patient 3.  
 * From the plot we may draw a conclusion that the experiment has a positive effect on increasing the test value.
 
